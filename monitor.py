@@ -10,6 +10,7 @@ import ssl
 import sys
 from dataclasses import dataclass
 from email.message import EmailMessage
+from email.utils import formataddr
 from statistics import mean
 from typing import Any
 
@@ -130,7 +131,7 @@ def format_message(current: DailyMetric, signals: list[tuple[str, int]]) -> str:
     date_text = current.date.isoformat()
     total_amount = sum(amount for _, amount in signals)
     lines = [
-        "📉 纳斯达克100（NDX）加仓提醒",
+        "📉 NDQ 纳斯达克100加仓提醒",
         "━━━━━━━━━━━━━━",
         f"🗓️ 美股日线：{date_text}",
         f"💵 指数收盘：{current.close:,.2f}",
@@ -183,7 +184,7 @@ def send_email(message: str) -> None:
     sender = os.environ.get("EMAIL_FROM", "").strip() or username
     subject = "NDQ 纳斯达克100加仓提醒"
     email = EmailMessage()
-    email["From"] = sender
+    email["From"] = formataddr(("NDQ 纳斯达克100加仓提醒", sender))
     email["To"] = recipient
     email["Subject"] = subject
     email.set_content(message)
@@ -207,10 +208,11 @@ def main() -> int:
     try:
         if os.environ.get("TEST_NOTIFICATION", "").strip().lower() in {"1", "true", "yes"}:
             message = (
-                "🧪 NDQ 监控测试通知\n"
+                "📉 NDQ 纳斯达克100加仓提醒\n"
                 "━━━━━━━━━━━━━━\n"
                 f"🕒 北京时间：{dt.datetime.now(dt.timezone(dt.timedelta(hours=8))):%Y-%m-%d %H:%M:%S}\n"
-            "✅ Telegram 及已配置的邮件通知流程已正常触发。\n"
+                "🧪 这是测试通知，不代表当前已触发加仓档位。\n"
+                "✅ Telegram 及已配置的邮件通知流程已正常触发。\n"
                 "📡 后续只有达到策略信号时才会发送加仓提醒。"
             )
             send_telegram(message)
