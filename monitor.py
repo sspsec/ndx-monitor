@@ -153,21 +153,6 @@ def format_message(current: DailyMetric, signals: list[tuple[str, int]]) -> str:
     return "\n".join(lines)
 
 
-def send_ntfy(message: str) -> None:
-    topic = os.environ.get("NTFY_TOPIC", "").strip()
-    if not topic:
-        return
-    server = os.environ.get("NTFY_SERVER", "https://ntfy.sh").rstrip("/")
-    response = requests.post(
-        f"{server}/{topic}",
-        data=message.encode("utf-8"),
-        # HTTP 请求头使用 ASCII，正文仍保留中文，避免 requests 的 latin-1 编码异常。
-        headers={"Title": "NDQ Monitor", "Priority": "high", "Tags": "chart_with_upwards_trend"},
-        timeout=20,
-    )
-    response.raise_for_status()
-
-
 def send_telegram(message: str) -> None:
     token = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
     chat_id = os.environ.get("TELEGRAM_CHAT_ID", "").strip()
@@ -225,10 +210,9 @@ def main() -> int:
                 "🧪 NDQ 监控测试通知\n"
                 "━━━━━━━━━━━━━━\n"
                 f"🕒 北京时间：{dt.datetime.now(dt.timezone(dt.timedelta(hours=8))):%Y-%m-%d %H:%M:%S}\n"
-                "✅ Telegram、ntfy 及已配置的邮件通知流程已正常触发。\n"
+            "✅ Telegram 及已配置的邮件通知流程已正常触发。\n"
                 "📡 后续只有达到策略信号时才会发送加仓提醒。"
             )
-            send_ntfy(message)
             send_telegram(message)
             send_email(message)
             print("TEST_NOTIFICATION_SENT")
@@ -250,7 +234,6 @@ def main() -> int:
             return 0
         message = format_message(current, signals)
         print(message)
-        send_ntfy(message)
         send_telegram(message)
         send_email(message)
         print("NOTIFICATION_SENT")

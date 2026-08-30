@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       test_notification:
-        description: "发送一条 Telegram/ntfy 测试通知"
+        description: "发送一条 Telegram/邮件测试通知"
         required: false
         default: false
         type: boolean
@@ -33,8 +33,6 @@ jobs:
 
       - name: Check NDQ and notify
         env:
-          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
-          NTFY_SERVER: https://ntfy.sh
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           SMTP_HOST: ${{ secrets.SMTP_HOST }}

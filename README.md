@@ -14,10 +14,9 @@
 ## GitHub Actions 设置
 
 1. 将本目录推送到一个 GitHub 仓库。
-2. 在 iPhone 安装 ntfy，订阅一个随机、难猜的 topic。
-3. 在仓库 `Settings → Secrets and variables → Actions` 添加 `NTFY_TOPIC`。
-4. 工作流使用 UTC：`22:30 UTC` 约等于北京时间次日 `06:30`。GitHub Actions 可能有几分钟调度延迟。
-5. 可以在 Actions 页面手动运行 `workflow_dispatch` 测试。
+2. 在仓库 `Settings → Secrets and variables → Actions` 添加通知所需的 Secrets。
+3. 工作流使用 UTC：`22:30 UTC` 约等于北京时间次日 `06:30`。GitHub Actions 可能有几分钟调度延迟。
+4. 可以在 Actions 页面手动运行 `workflow_dispatch` 测试。
 
 也支持可选的 Telegram：添加 `TELEGRAM_BOT_TOKEN` 和 `TELEGRAM_CHAT_ID` 两个 Secret 即可。
 
@@ -43,4 +42,4 @@ python3 -m unittest discover -s tests -v
 python3 monitor.py
 ```
 
-不要把 Bot Token、ntfy topic 或 GitHub Token 写进代码；全部放进 GitHub Secrets。
+不要把 Bot Token、SMTP 密码或 GitHub Token 写进代码；全部放进 GitHub Secrets。
