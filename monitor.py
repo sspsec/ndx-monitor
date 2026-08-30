@@ -125,17 +125,28 @@ def find_signals(metrics: list[DailyMetric | None]) -> list[tuple[str, int]]:
 
 def format_message(current: DailyMetric, signals: list[tuple[str, int]]) -> str:
     date_text = current.date.isoformat()
+    total_amount = sum(amount for _, amount in signals)
     lines = [
-        "NDQ 纳斯达克100加仓提醒",
-        f"美股日线日期：{date_text}",
-        f"指数收盘：{current.close:,.2f}",
-        f"252日参考高点：{current.reference_high:,.2f}",
-        f"当前回撤：{current.drawdown * 100:.2f}%",
+        "📉 纳斯达克100（NDX）加仓提醒",
+        "━━━━━━━━━━━━━━",
+        f"🗓️ 美股日线：{date_text}",
+        f"💵 指数收盘：{current.close:,.2f}",
+        f"🏔️ 252日最高收盘：{current.reference_high:,.2f}",
+        f"📊 当前回撤：{current.drawdown * 100:.2f}%",
         "",
     ]
     for name, amount in signals:
         suffix = "（需同时满足 MA60 三日确认）" if name == "第四档" else ""
-        lines.append(f"触发{ name }：建议场内加仓 {amount:,} 元{suffix}")
+        lines.append(f"🚦 触发{name}：场内加仓 {amount:,} 元{suffix}")
+    lines.extend(
+        [
+            "",
+            f"💰 本次建议合计：{total_amount:,} 元",
+            "🛒 执行方式：场内 ETF 按金额买入",
+            "📌 场外基金定投：按原计划执行",
+            "⚠️ 这是策略提醒，请结合资金和风险承受能力判断。",
+        ]
+    )
     return "\n".join(lines)
 
 
@@ -171,9 +182,11 @@ def main() -> int:
     try:
         if os.environ.get("TEST_NOTIFICATION", "").strip().lower() in {"1", "true", "yes"}:
             message = (
-                "NDQ 监控测试通知\n"
-                f"北京时间：{dt.datetime.now(dt.timezone(dt.timedelta(hours=8))):%Y-%m-%d %H:%M:%S}\n"
-                "Telegram Secret 与通知流程已触发。"
+                "🧪 NDQ 监控测试通知\n"
+                "━━━━━━━━━━━━━━\n"
+                f"🕒 北京时间：{dt.datetime.now(dt.timezone(dt.timedelta(hours=8))):%Y-%m-%d %H:%M:%S}\n"
+                "✅ Telegram 与 ntfy 通知流程已正常触发。\n"
+                "📡 后续只有达到策略信号时才会发送加仓提醒。"
             )
             send_ntfy(message)
             send_telegram(message)
