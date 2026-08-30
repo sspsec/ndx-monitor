@@ -147,7 +147,8 @@ def send_ntfy(message: str) -> None:
     response = requests.post(
         f"{server}/{topic}",
         data=message.encode("utf-8"),
-        headers={"Title": "NDQ 加仓提醒", "Priority": "high", "Tags": "chart_with_upwards_trend"},
+        # HTTP 请求头使用 ASCII，正文仍保留中文，避免 requests 的 latin-1 编码异常。
+        headers={"Title": "NDQ Monitor", "Priority": "high", "Tags": "chart_with_upwards_trend"},
         timeout=20,
     )
     response.raise_for_status()
