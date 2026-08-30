@@ -225,7 +225,7 @@ def main() -> int:
                 "🧪 NDQ 监控测试通知\n"
                 "━━━━━━━━━━━━━━\n"
                 f"🕒 北京时间：{dt.datetime.now(dt.timezone(dt.timedelta(hours=8))):%Y-%m-%d %H:%M:%S}\n"
-                "✅ Telegram 与 ntfy 通知流程已正常触发。\n"
+                "✅ Telegram、ntfy 及已配置的邮件通知流程已正常触发。\n"
                 "📡 后续只有达到策略信号时才会发送加仓提醒。"
             )
             send_ntfy(message)

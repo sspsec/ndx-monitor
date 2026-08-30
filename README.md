@@ -21,7 +21,19 @@
 
 也支持可选的 Telegram：添加 `TELEGRAM_BOT_TOKEN` 和 `TELEGRAM_CHAT_ID` 两个 Secret 即可。
 
-也支持可选的 SMTP 邮件：添加 `SMTP_HOST`、`SMTP_PORT`、`SMTP_USERNAME`、`SMTP_PASSWORD`、`EMAIL_FROM`、`EMAIL_TO` 六个 Secret；如使用 465 端口 SSL，再添加 `SMTP_USE_SSL=true`。iCloud 邮箱可使用 `smtp.mail.me.com`、587 端口和 Apple 生成的应用专用密码，不能使用普通登录密码。
+也支持可选的 SMTP 邮件。iCloud 配置如下：
+
+```text
+SMTP_HOST=smtp.mail.me.com
+SMTP_PORT=587
+SMTP_USERNAME=你的完整 iCloud 邮箱
+SMTP_PASSWORD=Apple 生成的应用专用密码
+EMAIL_FROM=你的完整 iCloud 邮箱
+EMAIL_TO=接收提醒的邮箱
+SMTP_USE_SSL=false
+```
+
+将这些值分别保存为 GitHub Actions Secrets；`SMTP_PASSWORD` 必须是 Apple 账户生成的“应用专用密码”，不能使用普通登录密码。其他邮箱只需替换 SMTP 主机、端口和账号参数。
 
 ## 本地测试
 
