@@ -36,7 +36,6 @@ class DailyMetric:
 def fetch_ndx() -> list[tuple[dt.date, float]]:
     """从 Yahoo Finance chart API 获取 ^NDX 日线收盘价。"""
     now = int(dt.datetime.now(dt.timezone.utc).timestamp())
-    url = "https://query1.finance.yahoo.com/v8/finance/chart/%5ENDX"
     params = {
         "period1": now - 5 * 365 * 24 * 60 * 60,
         "period2": now + 24 * 60 * 60,
@@ -44,17 +43,27 @@ def fetch_ndx() -> list[tuple[dt.date, float]]:
         "events": "history",
         "includeAdjustedClose": "true",
     }
-    response = requests.get(
-        url,
-        params=params,
-        headers={"User-Agent": "ndx-monitor/1.0"},
-        timeout=20,
-    )
-    response.raise_for_status()
-    payload: dict[str, Any] = response.json()
+    payload: dict[str, Any] | None = None
+    errors: list[str] = []
+    for host in ("query1.finance.yahoo.com", "query2.finance.yahoo.com"):
+        try:
+            response = requests.get(
+                f"https://{host}/v8/finance/chart/%5ENDX",
+                params=params,
+                headers={"User-Agent": "ndx-monitor/1.0"},
+                timeout=20,
+            )
+            response.raise_for_status()
+            candidate = response.json()
+            if (candidate.get("chart") or {}).get("result"):
+                payload = candidate
+                break
+            errors.append(f"{host}: empty result")
+        except Exception as exc:  # noqa: BLE001 - try the secondary endpoint
+            errors.append(f"{host}: {exc}")
+    if payload is None:
+        raise RuntimeError("Yahoo Finance 获取 ^NDX 失败；" + " | ".join(errors))
     result = (payload.get("chart") or {}).get("result")
-    if not result:
-        raise RuntimeError("Yahoo Finance 没有返回 ^NDX 数据")
     item = result[0]
     timestamps = item.get("timestamp") or []
     quotes = ((item.get("indicators") or {}).get("quote") or [{}])[0]
