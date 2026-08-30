@@ -168,6 +168,17 @@ def send_telegram(message: str) -> None:
 
 def main() -> int:
     try:
+        if os.environ.get("TEST_NOTIFICATION", "").strip().lower() in {"1", "true", "yes"}:
+            message = (
+                "NDQ 监控测试通知\n"
+                f"北京时间：{dt.datetime.now(dt.timezone(dt.timedelta(hours=8))):%Y-%m-%d %H:%M:%S}\n"
+                "Telegram Secret 与通知流程已触发。"
+            )
+            send_ntfy(message)
+            send_telegram(message)
+            print("TEST_NOTIFICATION_SENT")
+            return 0
+
         rows = fetch_ndx()
         metrics = build_metrics(rows)
         current = metrics[-1]

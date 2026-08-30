@@ -5,6 +5,12 @@ on:
   schedule:
     - cron: "30 22 * * 1-5"
   workflow_dispatch:
+    inputs:
+      test_notification:
+        description: "发送一条 Telegram/ntfy 测试通知"
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -31,4 +37,5 @@ jobs:
           NTFY_SERVER: https://ntfy.sh
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TEST_NOTIFICATION: ${{ inputs.test_notification }}
         run: python monitor.py
