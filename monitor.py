@@ -5,8 +5,11 @@ from __future__ import annotations
 
 import datetime as dt
 import os
+import smtplib
+import ssl
 import sys
 from dataclasses import dataclass
+from email.message import EmailMessage
 from statistics import mean
 from typing import Any
 
@@ -178,6 +181,43 @@ def send_telegram(message: str) -> None:
     response.raise_for_status()
 
 
+def send_email(message: str) -> None:
+    """通过 SMTP 发送邮件；未配置完整 SMTP Secrets 时跳过。"""
+    host = os.environ.get("SMTP_HOST", "").strip()
+    username = os.environ.get("SMTP_USERNAME", "").strip()
+    password = os.environ.get("SMTP_PASSWORD", "").strip()
+    recipient = os.environ.get("EMAIL_TO", "").strip()
+    if not all((host, username, password, recipient)):
+        return
+
+    try:
+        port = int(os.environ.get("SMTP_PORT", "587"))
+    except ValueError as exc:
+        raise RuntimeError("SMTP_PORT 必须是数字") from exc
+
+    sender = os.environ.get("EMAIL_FROM", "").strip() or username
+    subject = "NDQ 纳斯达克100加仓提醒"
+    email = EmailMessage()
+    email["From"] = sender
+    email["To"] = recipient
+    email["Subject"] = subject
+    email.set_content(message)
+
+    use_ssl = os.environ.get("SMTP_USE_SSL", "false").strip().lower() in {"1", "true", "yes"}
+    if use_ssl:
+        with smtplib.SMTP_SSL(host, port, timeout=20, context=ssl.create_default_context()) as smtp:
+            smtp.login(username, password)
+            smtp.send_message(email)
+        return
+
+    with smtplib.SMTP(host, port, timeout=20) as smtp:
+        smtp.ehlo()
+        smtp.starttls(context=ssl.create_default_context())
+        smtp.ehlo()
+        smtp.login(username, password)
+        smtp.send_message(email)
+
+
 def main() -> int:
     try:
         if os.environ.get("TEST_NOTIFICATION", "").strip().lower() in {"1", "true", "yes"}:
@@ -190,6 +230,7 @@ def main() -> int:
             )
             send_ntfy(message)
             send_telegram(message)
+            send_email(message)
             print("TEST_NOTIFICATION_SENT")
             return 0
 
@@ -211,6 +252,7 @@ def main() -> int:
         print(message)
         send_ntfy(message)
         send_telegram(message)
+        send_email(message)
         print("NOTIFICATION_SENT")
         return 0
     except Exception as exc:  # noqa: BLE001 - Actions 日志需要给出清晰错误

@@ -21,6 +21,8 @@
 
 也支持可选的 Telegram：添加 `TELEGRAM_BOT_TOKEN` 和 `TELEGRAM_CHAT_ID` 两个 Secret 即可。
 
+也支持可选的 SMTP 邮件：添加 `SMTP_HOST`、`SMTP_PORT`、`SMTP_USERNAME`、`SMTP_PASSWORD`、`EMAIL_FROM`、`EMAIL_TO` 六个 Secret；如使用 465 端口 SSL，再添加 `SMTP_USE_SSL=true`。iCloud 邮箱可使用 `smtp.mail.me.com`、587 端口和 Apple 生成的应用专用密码，不能使用普通登录密码。
+
 ## 本地测试
 
 ```bash
