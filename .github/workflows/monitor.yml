@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       test_notification:
-        description: "发送一条 Telegram/邮件测试通知"
+        description: "分别发送 NDQ 和 SP500 Telegram/邮件测试通知"
         required: false
         default: false
         type: boolean
