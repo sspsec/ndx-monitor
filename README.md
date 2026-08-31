@@ -17,7 +17,7 @@
 
 1. 将本目录推送到一个 GitHub 仓库。
 2. 在仓库 `Settings → Secrets and variables → Actions` 添加通知所需的 Secrets。
-3. 工作流使用 UTC：`22:30 UTC` 约等于北京时间次日 `06:30`。GitHub Actions 可能有几分钟调度延迟；两个指数会分别检查。
+3. 工作流使用 UTC：周日到周四的 `22:30 UTC` 对应北京时间周一到周五 `06:30`。GitHub Actions 可能有几分钟调度延迟；两个指数会分别检查。
 4. 可以在 Actions 页面手动运行 `workflow_dispatch` 测试。
 
 也支持可选的 Telegram：添加 `TELEGRAM_BOT_TOKEN` 和 `TELEGRAM_CHAT_ID` 两个 Secret 即可。

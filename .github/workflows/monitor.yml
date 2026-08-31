@@ -1,9 +1,9 @@
 name: Index ETF monitor
 
 on:
-  # GitHub Actions 使用 UTC。22:30 UTC = 北京时间次日 06:30，覆盖美股收盘后的最新日线。
+  # GitHub Actions 使用 UTC。周日到周四 22:30 UTC = 北京时间周一到周五 06:30，覆盖上一交易日收盘后的最新日线。
   schedule:
-    - cron: "30 22 * * 1-5"
+    - cron: "30 22 * * 0-4"
   workflow_dispatch:
     inputs:
       test_notification:
