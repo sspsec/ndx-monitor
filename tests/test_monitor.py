@@ -1,7 +1,7 @@
 import datetime as dt
 import unittest
 
-from monitor import build_metrics, find_signals
+from monitor import MARKETS, build_metrics, find_signals, format_message
 
 
 class MonitorTests(unittest.TestCase):
@@ -25,6 +25,14 @@ class MonitorTests(unittest.TestCase):
         ]
         metrics = build_metrics(rows)
         self.assertEqual(find_signals(metrics), [("第一档", 3000)])
+
+    def test_sp500_message_is_distinguishable(self):
+        current = build_metrics(
+            [(dt.date(2025, 1, 1) + dt.timedelta(days=i), 100.0) for i in range(255)]
+        )[-1]
+        self.assertIsNotNone(current)
+        message = format_message(current, [("第一档", 3000)], MARKETS["sp500"])
+        self.assertIn("SP500 标普500加仓提醒", message)
 
 
 if __name__ == "__main__":

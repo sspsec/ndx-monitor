@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""监控 Nasdaq-100 回撤，并按人民币金额发送场内加仓提醒。"""
+"""监控指数回撤，并按人民币金额发送场内加仓提醒。"""
 
 from __future__ import annotations
 
@@ -28,6 +28,20 @@ STAGE4_AMOUNT = 6000
 
 
 @dataclass(frozen=True)
+class MarketConfig:
+    key: str
+    yahoo_symbol: str
+    display_name: str
+    short_name: str
+
+
+MARKETS = {
+    "ndx": MarketConfig("ndx", "^NDX", "纳斯达克100", "NDQ"),
+    "sp500": MarketConfig("sp500", "^GSPC", "标普500", "SP500"),
+}
+
+
+@dataclass(frozen=True)
 class DailyMetric:
     date: dt.date
     close: float
@@ -37,8 +51,8 @@ class DailyMetric:
     ma60_reclaim_3d: bool
 
 
-def fetch_ndx() -> list[tuple[dt.date, float]]:
-    """从 Yahoo Finance chart API 获取 ^NDX 日线收盘价。"""
+def fetch_market(config: MarketConfig) -> list[tuple[dt.date, float]]:
+    """从 Yahoo Finance chart API 获取指定指数的日线收盘价。"""
     now = int(dt.datetime.now(dt.timezone.utc).timestamp())
     params = {
         "period1": now - 5 * 365 * 24 * 60 * 60,
@@ -52,7 +66,7 @@ def fetch_ndx() -> list[tuple[dt.date, float]]:
     for host in ("query1.finance.yahoo.com", "query2.finance.yahoo.com"):
         try:
             response = requests.get(
-                f"https://{host}/v8/finance/chart/%5ENDX",
+                f"https://{host}/v8/finance/chart/{config.yahoo_symbol.replace('^', '%5E')}",
                 params=params,
                 headers={"User-Agent": "ndx-monitor/1.0"},
                 timeout=20,
@@ -66,7 +80,9 @@ def fetch_ndx() -> list[tuple[dt.date, float]]:
         except Exception as exc:  # noqa: BLE001 - try the secondary endpoint
             errors.append(f"{host}: {exc}")
     if payload is None:
-        raise RuntimeError("Yahoo Finance 获取 ^NDX 失败；" + " | ".join(errors))
+        raise RuntimeError(
+            f"Yahoo Finance 获取 {config.yahoo_symbol} 失败；" + " | ".join(errors)
+        )
     result = (payload.get("chart") or {}).get("result")
     item = result[0]
     timestamps = item.get("timestamp") or []
@@ -81,6 +97,11 @@ def fetch_ndx() -> list[tuple[dt.date, float]]:
     if len(rows) < LOOKBACK + 3:
         raise RuntimeError(f"有效日线不足，需要至少 {LOOKBACK + 3} 条，实际 {len(rows)} 条")
     return rows
+
+
+def fetch_ndx() -> list[tuple[dt.date, float]]:
+    """兼容旧调用：获取 Nasdaq-100 日线收盘价。"""
+    return fetch_market(MARKETS["ndx"])
 
 
 def build_metrics(rows: list[tuple[dt.date, float]]) -> list[DailyMetric | None]:
@@ -127,11 +148,15 @@ def find_signals(metrics: list[DailyMetric | None]) -> list[tuple[str, int]]:
     return signals
 
 
-def format_message(current: DailyMetric, signals: list[tuple[str, int]]) -> str:
+def format_message(
+    current: DailyMetric,
+    signals: list[tuple[str, int]],
+    market: MarketConfig = MARKETS["ndx"],
+) -> str:
     date_text = current.date.isoformat()
     total_amount = sum(amount for _, amount in signals)
     lines = [
-        "📉 NDQ 纳斯达克100加仓提醒",
+        f"📉 {market.short_name} {market.display_name}加仓提醒",
         "━━━━━━━━━━━━━━",
         f"🗓️ 美股日线：{date_text}",
         f"💵 指数收盘：{current.close:,.2f}",
@@ -167,7 +192,7 @@ def send_telegram(message: str) -> None:
     response.raise_for_status()
 
 
-def send_email(message: str) -> None:
+def send_email(message: str, market: MarketConfig = MARKETS["ndx"]) -> None:
     """通过 SMTP 发送邮件；未配置完整 SMTP Secrets 时跳过。"""
     host = os.environ.get("SMTP_HOST", "").strip()
     username = os.environ.get("SMTP_USERNAME", "").strip()
@@ -182,9 +207,9 @@ def send_email(message: str) -> None:
         raise RuntimeError("SMTP_PORT 必须是数字") from exc
 
     sender = os.environ.get("EMAIL_FROM", "").strip() or username
-    subject = "NDQ 纳斯达克100加仓提醒"
+    subject = f"{market.short_name} {market.display_name}加仓提醒"
     email = EmailMessage()
-    email["From"] = formataddr(("NDQ 纳斯达克100加仓提醒", sender))
+    email["From"] = formataddr((f"{market.short_name} {market.display_name}加仓提醒", sender))
     email["To"] = recipient
     email["Subject"] = subject
     email.set_content(message)
@@ -206,9 +231,16 @@ def send_email(message: str) -> None:
 
 def main() -> int:
     try:
+        market_key = os.environ.get("MARKET", "ndx").strip().lower()
+        market = MARKETS.get(market_key)
+        if market is None:
+            raise RuntimeError(
+                f"MARKET 必须是 ndx 或 sp500，当前值为 {market_key!r}"
+            )
+
         if os.environ.get("TEST_NOTIFICATION", "").strip().lower() in {"1", "true", "yes"}:
             message = (
-                "📉 NDQ 纳斯达克100加仓提醒\n"
+                f"📉 {market.short_name} {market.display_name}加仓提醒\n"
                 "━━━━━━━━━━━━━━\n"
                 f"🕒 北京时间：{dt.datetime.now(dt.timezone(dt.timedelta(hours=8))):%Y-%m-%d %H:%M:%S}\n"
                 "🧪 这是测试通知，不代表当前已触发加仓档位。\n"
@@ -216,28 +248,28 @@ def main() -> int:
                 "📡 后续只有达到策略信号时才会发送加仓提醒。"
             )
             send_telegram(message)
-            send_email(message)
+            send_email(message, market)
             print("TEST_NOTIFICATION_SENT")
             return 0
 
-        rows = fetch_ndx()
+        rows = fetch_market(market)
         metrics = build_metrics(rows)
         current = metrics[-1]
         if current is None:
             raise RuntimeError("当前没有可用指标")
         signals = find_signals(metrics)
         print(
-            f"NDX {current.date} close={current.close:.2f} "
+            f"{market.short_name} {current.date} close={current.close:.2f} "
             f"reference_high={current.reference_high:.2f} "
             f"drawdown={current.drawdown * 100:.2f}%"
         )
         if not signals:
             print("NO_SIGNAL")
             return 0
-        message = format_message(current, signals)
+        message = format_message(current, signals, market)
         print(message)
         send_telegram(message)
-        send_email(message)
+        send_email(message, market)
         print("NOTIFICATION_SENT")
         return 0
     except Exception as exc:  # noqa: BLE001 - Actions 日志需要给出清晰错误

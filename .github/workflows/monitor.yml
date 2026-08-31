@@ -1,4 +1,4 @@
-name: NDQ ETF monitor
+name: Index ETF monitor
 
 on:
   # GitHub Actions 使用 UTC。22:30 UTC = 北京时间次日 06:30，覆盖美股收盘后的最新日线。
@@ -17,7 +17,16 @@ permissions:
 
 jobs:
   monitor:
+    name: ${{ matrix.market_name }}监控
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - market: ndx
+            market_name: NDQ 纳斯达克100
+          - market: sp500
+            market_name: SP500 标普500
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -31,8 +40,9 @@ jobs:
       - name: Install dependencies
         run: python -m pip install -r requirements.txt
 
-      - name: Check NDQ and notify
+      - name: Check index and notify
         env:
+          MARKET: ${{ matrix.market }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           SMTP_HOST: ${{ secrets.SMTP_HOST }}
